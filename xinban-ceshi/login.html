@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>鑫办 - 登录</title>
+  <link rel="stylesheet" href="assets/css/styles.css">
+</head>
+<body class="login-page">
+  <div class="login-container">
+    <div class="login-logo-section">
+      <div style="width: 80px; height: 80px; margin: 0 auto 15px; border-radius: 16px; overflow: hidden; background: rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; font-size: 48px; color: white; font-weight: bold;">鑫</div>
+      <div style="font-size: 28px; font-weight: bold; color: white; margin-bottom: 6px;">鑫办</div>
+      <div style="font-size: 14px; color: rgba(255,255,255,0.9);">智能办公协作平台</div>
+    </div>
+
+    <div class="login-form-section">
+      <!-- 登录表单 -->
+      <div id="loginForm">
+        <div class="form-group">
+          <input type="text" id="loginUsername" class="form-input" placeholder="请输入账号" />
+        </div>
+        <div class="form-group">
+          <input type="password" id="loginPassword" class="form-input" placeholder="请输入密码" />
+        </div>
+        <button class="btn-primary" id="loginBtn" style="margin-top: 10px;">登录</button>
+        <div style="text-align: center; margin-top: 15px; color: #999; font-size: 13px;">
+          <a href="#" id="switchToRegister" style="color: #1890ff; text-decoration: none;">还没有账号？去注册</a>
+        </div>
+      </div>
+
+      <!-- 注册表单 -->
+      <div id="registerForm" style="display: none;">
+        <div class="form-group">
+          <input type="text" id="regUsername" class="form-input" placeholder="请输入账号" />
+        </div>
+        <div class="form-group">
+          <input type="password" id="regPassword" class="form-input" placeholder="请输入密码" />
+        </div>
+        <div class="form-group">
+          <input type="text" id="regName" class="form-input" placeholder="请输入姓名" />
+        </div>
+        <div class="form-group">
+          <select id="regDepartment" class="form-select">
+            <option value="">请选择所属部门</option>
+          </select>
+        </div>
+        <button class="btn-primary" id="registerBtn" style="margin-top: 10px;">注册</button>
+        <div style="text-align: center; margin-top: 15px; color: #999; font-size: 13px;">
+          <a href="#" id="switchToLogin" style="color: #1890ff; text-decoration: none;">已有账号？去登录</a>
+        </div>
+      </div>
+
+      <!-- 登录提示 -->
+      <div style="margin-top: 25px; padding: 15px; background: #fff7e6; border-radius: 8px; font-size: 12px; color: #666;">
+        <div style="font-weight: bold; color: #faad14; margin-bottom: 8px;">测试账号：</div>
+        <div>管理员：admin / 123456</div>
+        <div>部门管理员：manager / 123456</div>
+        <div>普通员工：employee / 123456</div>
+      </div>
+    </div>
+  </div>
+
+  <script src="assets/js/app.js"></script>
+  <script>
+    // 加载部门列表
+    function loadDepartments() {
+      const depts = DB.departments.getAll();
+      const select = document.getElementById('regDepartment');
+      depts.forEach(dept => {
+        if (dept.name !== '系统管理部') {
+          const option = document.createElement('option');
+          option.value = dept.name;
+          option.textContent = dept.name;
+          select.appendChild(option);
+        }
+      });
+    }
+
+    // 切换到登录
+    document.getElementById('switchToLogin').addEventListener('click', (e) => {
+      e.preventDefault();
+      document.getElementById('loginForm').style.display = 'block';
+      document.getElementById('registerForm').style.display = 'none';
+    });
+
+    // 切换到注册
+    document.getElementById('switchToRegister').addEventListener('click', (e) => {
+      e.preventDefault();
+      document.getElementById('loginForm').style.display = 'none';
+      document.getElementById('registerForm').style.display = 'block';
+    });
+
+    // 登录
+    document.getElementById('loginBtn').addEventListener('click', () => {
+      const username = document.getElementById('loginUsername').value.trim();
+      const password = document.getElementById('loginPassword').value;
+
+      if (!username) {
+        Utils.showToast('请输入账号');
+        return;
+      }
+      if (!password) {
+        Utils.showToast('请输入密码');
+        return;
+      }
+
+      const user = DB.users.getByUsername(username);
+      if (!user) {
+        if (user.password === password) {
+          Session.setCurrentUser(user);
+          Utils.showToast('登录成功');
+          setTimeout(() => {
+            window.location.href = 'index.html';
+          }, 1000);
+        } else {
+          Utils.showToast('密码错误');
+        }
+      } else {
+        Utils.showToast('用户不存在');
+      }
+    });
+
+    // 注册
+    document.getElementById('registerBtn').addEventListener('click', () => {
+      const username = document.getElementById('regUsername').value.trim();
+      const password = document.getElementById('regPassword').value;
+      const name = document.getElementById('regName').value.trim();
+      const department = document.getElementById('regDepartment').value;
+
+      if (!username) {
+        Utils.showToast('请输入账号');
+        return;
+      }
+      if (!password) {
+        Utils.showToast('请输入密码');
+        return;
+      }
+      if (!name) {
+        Utils.showToast('请输入姓名');
+        return;
+      }
+      if (!department) {
+        Utils.showToast('请选择部门');
+        return;
+      }
+
+      const existing = DB.users.getByUsername(username);
+      if (existing) {
+        Utils.showToast('账号已存在');
+        return;
+      }
+
+      const newUser = DB.users.add({
+        username,
+        password,
+        name,
+        department,
+        role: 'employee',
+        roleName: '普通员工'
+      });
+
+      if (newUser) {
+        Utils.showToast('注册成功，请登录');
+        setTimeout(() => {
+          document.getElementById('switchToLogin').click();
+        }, 1000);
+      } else {
+        Utils.showToast('注册失败，请重试');
+      }
+    });
+
+    // 回车键登录
+    document.getElementById('loginPassword').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        document.getElementById('loginBtn').click();
+      }
+    });
+
+    loadDepartments();
+  </script>
+</body>
+</html>
